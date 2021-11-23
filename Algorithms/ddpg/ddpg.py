@@ -17,10 +17,10 @@ from torch.utils.tensorboard import SummaryWriter
 
 class DDPG:
     def __init__(self, env_fn, save_dir, ac_kwargs=dict(), seed=0, tensorboard_logdir = None,
-         replay_size=int(1e6), gamma=0.99, 
-         tau=0.995, pi_lr=1e-3, q_lr=1e-3, batch_size=100, start_steps=10000, 
-         update_after=1000, update_every=50, act_noise=0.1, num_test_episodes=10, 
-         max_ep_len=1000, logger_kwargs=dict(), save_freq=1, ngpu=1):    
+         replay_size=int(1e6), gamma=0.99,
+         tau=0.995, pi_lr=1e-3, q_lr=1e-3, batch_size=100, start_steps=10000,
+         update_after=1000, update_every=50, act_noise=0.1, num_test_episodes=10,
+         max_ep_len=1000, logger_kwargs=dict(), save_freq=1, ngpu=1):
         '''
         Deep Deterministic Policy Gradients (DDPG)
         Args:
@@ -34,7 +34,7 @@ class DDPG:
             seed (int): seed for random generators
             replay_size (int): Maximum length of replay buffer.
             gamma (float): Discount factor. (Always between 0 and 1.)
-            tau (float): Interpolation factor in polyak averaging for target 
+            tau (float): Interpolation factor in polyak averaging for target
                 networks.
             pi_lr (float): Learning rate for policy.
             q_lr (float): Learning rate for Q-networks.
@@ -45,15 +45,15 @@ class DDPG:
                 starting to do gradient descent updates. Ensures replay buffer
                 is full enough for useful updates.
             update_every (int): Number of env interactions that should elapse
-                between gradient descent updates. Note: Regardless of how long 
-                you wait between updates, the ratio of env steps to gradient steps 
+                between gradient descent updates. Note: Regardless of how long
+                you wait between updates, the ratio of env steps to gradient steps
                 is locked to 1.
-            act_noise (float): Stddev for Gaussian exploration noise added to 
+            act_noise (float): Stddev for Gaussian exploration noise added to
                 policy at training time. (At test time, no noise is added.)
             num_test_episodes (int): Number of episodes to test the deterministic
                 policy at the end of each epoch.
             max_ep_len (int): Maximum length of trajectory / episode / rollout.
-            logger_kwargs (dict): Keyword args for Logger. 
+            logger_kwargs (dict): Keyword args for Logger.
                         (1) output_dir = None
                         (2) output_fname = 'progress.pickle'
             save_freq (int): How often (in terms of gap between episodes) to save
@@ -80,7 +80,7 @@ class DDPG:
         # Freeze target networks with respect to optimizers
         for p in self.ac_targ.parameters():
             p.requires_grad = False
-        
+
         # Experience buffer
         self.replay_size = replay_size
         self.replay_buffer = ReplayBuffer(int(replay_size))
@@ -111,8 +111,8 @@ class DDPG:
     def reinit_network(self):
         '''
         Re-initialize network weights and optimizers for a fresh agent to train
-        '''        
-        
+        '''
+
         # Create actor-critic module
         self.best_mean_reward = -np.inf
         self.ac = self.actor_critic(self.env.observation_space, self.env.action_space, device=self.device, ngpu=self.ngpu, **self.ac_kwargs)
@@ -121,7 +121,7 @@ class DDPG:
         # Freeze target networks with respect to optimizers
         for p in self.ac_targ.parameters():
             p.requires_grad = False
-        
+
         # Experience buffer
         self.replay_buffer = ReplayBuffer(int(self.replay_size))
 
@@ -153,7 +153,7 @@ class DDPG:
             next_actions = self.ac_targ.pi(next_states)
             next_Q = self.ac_targ.q(next_states, next_actions) * (1-terminals)
             Qprime = rewards + (self.gamma * next_Q)
-        
+
         # MSE loss
         loss_q = ((Q_values-Qprime)**2).mean()
         loss_info = dict(Qvals=Q_values.detach().cpu().numpy().tolist())
@@ -174,7 +174,7 @@ class DDPG:
         # Unfreeze Q-network for next update step
         for p in self.ac.q.parameters():
             p.requires_grad = True
-            
+
         # Record loss q and loss pi and qvals in the form of loss_info
         self.logger.store(LossQ=loss_q.item(), LossPi=loss_pi.item(), **loss_info)
         self.tensorboard_logger.add_scalar("loss/q_loss", loss_q.item(), timestep)
@@ -207,7 +207,7 @@ class DDPG:
         '''
         Run the current model through test environment for <self.num_test_episodes> episodes
         without noise exploration, and store the episode return and length into the logger.
-        
+
         Used to measure how well the agent is doing.
         '''
         self.env.training=False
@@ -235,7 +235,7 @@ class DDPG:
             _fname = "best.pth"
         else:
             _fname = "model_weights.pth"
-        
+
         print('saving checkpoint...')
         checkpoint = {
             'ac': self.ac.state_dict(),
@@ -274,10 +274,10 @@ class DDPG:
             if os.path.isfile(env_path):
                 self.env = self.env.load(env_path)
                 print("Environment loaded")
-            
+
             print('checkpoint loaded at {}'.format(checkpoint_path))
         else:
-            raise OSError("Checkpoint file not found.")    
+            raise OSError("Checkpoint file not found.")
 
     def learn_one_trial(self, timesteps, trial_num):
         state, ep_ret, ep_len = self.env.reset(), 0, 0
@@ -303,13 +303,13 @@ class DDPG:
 
             # Critical step to update current state
             state = next_state
-            
+
             # Update handling
             if timestep>=self.update_after and (timestep+1)%self.update_every==0:
                 for _ in range(self.update_every):
                     experiences = self.replay_buffer.sample(self.batch_size)
                     self.update(experiences, timestep)
-            
+
             # End of trajectory/episode handling
             if done or (ep_len==self.max_ep_len):
                 self.logger.store(EpRet=ep_ret, EpLen=ep_len)
@@ -331,7 +331,7 @@ class DDPG:
 
                         self.best_mean_reward = mean_reward
                         self.save_weights(fname=f"best_{trial_num}.pth")
-                    
+
                     if self.env.spec.reward_threshold is not None and self.best_mean_reward >= self.env.spec.reward_threshold:
                         print("Solved Environment, stopping iteration...")
                         return
@@ -339,9 +339,9 @@ class DDPG:
                 # self.evaluate_agent()
                 self.logger.dump()
 
-            if self.save_freq > 0 and timestep % self.save_freq == 0:
+            if self.save_freq > 0 and (timestep + 1) % self.save_freq == 0:
                 self.save_weights(fname=f"latest_{trial_num}.pth")
-        
+
 
     def learn(self, timesteps, num_trials=1):
         '''
@@ -354,7 +354,7 @@ class DDPG:
         for trial in range(num_trials):
             self.tensorboard_logger = SummaryWriter(log_dir=os.path.join(self.tensorboard_logdir, f'{trial+1}'))
             self.learn_one_trial(timesteps, trial+1)
-            
+
             if self.best_mean_reward > best_reward_trial:
                 best_reward_trial = self.best_mean_reward
                 self.save_weights(best=True)
@@ -392,7 +392,7 @@ class DDPG:
                 else:
                     self.env.render()
                 ep_ret += reward
-                ep_len += 1                
+                ep_len += 1
         else:
             while not (done or (ep_len==self.max_ep_len)):
                 # Take deterministic action with 0 noise added
@@ -408,13 +408,13 @@ class DDPG:
             imageio.mimsave(f'{os.path.join(self.save_dir, "recording.gif")}', [np.array(img) for i, img in enumerate(img) if i%2 == 0], fps=29)
 
         self.env.training=True
-        return ep_ret, ep_len      
+        return ep_ret, ep_len
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--env', type=str, default='CartPoleContinuousBulletEnv-v0', help='environment_id')
     parser.add_argument('--config_path', type=str, default='ddpg_config.json', help='path to config.json')
-    parser.add_argument('--timesteps', type=int, required=True, help='specify number of timesteps to train for') 
+    parser.add_argument('--timesteps', type=int, required=True, help='specify number of timesteps to train for')
     parser.add_argument('--seed', type=int, default=0, help='seed number for reproducibility')
     return parser.parse_args()
 
