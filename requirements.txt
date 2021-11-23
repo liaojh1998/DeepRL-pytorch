@@ -12,3 +12,4 @@ wandb
 natsort
 pyquaternion
 opencv-python-headless
+tensorflow-gpu==2.5.0

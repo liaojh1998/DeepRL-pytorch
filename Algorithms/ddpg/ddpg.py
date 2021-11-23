@@ -196,7 +196,7 @@ class DDPG:
         '''
         self.ac.eval()
         self.ac_targ.eval()
-        obs = torch.as_tensor([obs], dtype=torch.float32).to(self.device)
+        obs = torch.as_tensor(np.array([obs]), dtype=torch.float32).to(self.device)
         action = self.ac.act(obs).squeeze()
         if len(action.shape) == 0:
             action = np.array([action])

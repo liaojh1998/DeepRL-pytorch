@@ -38,7 +38,7 @@ def random_test(env_fn, render=True, record_dir=None, timesteps=None):
             else:
                 env.render()
             ep_ret += reward
-            ep_len += 1                
+            ep_len += 1
     else:
         while not done:
             # Take deterministic action with 0 noise added
@@ -53,7 +53,7 @@ def random_test(env_fn, render=True, record_dir=None, timesteps=None):
     if record_dir is not None:
         imageio.mimsave(f'{os.path.join(record_dir, "random_recording.gif")}', [np.array(img) for i, img in enumerate(img) if i%2 == 0], fps=29)
 
-    return ep_ret, ep_len  
+    return ep_ret, ep_len
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -66,8 +66,8 @@ def parse_arguments():
     parser.add_argument('--normalize', action='store_true', help='if true, normalize environment observations')
     parser.add_argument('--rlbench', action='store_true', help='if true, use rlbench environment wrappers')
     parser.add_argument('--image', action='store_true', help='if true, use rlbench environment wrappers')
-    parser.add_argument('--view', type=str, default='wrist_rgb', 
-                        choices=['wrist_rgb', 'front_rgb', 'left_shoulder_rgb', 'right_shoulder_rgb'], 
+    parser.add_argument('--view', type=str, default='wrist_rgb',
+                        choices=['wrist_rgb', 'front_rgb', 'left_shoulder_rgb', 'right_shoulder_rgb'],
                         help='choose the type of camera view to generate image (only for RLBench envs)')
     return parser.parse_args()
 
@@ -85,7 +85,7 @@ def main():
         env_fn = lambda: Image_Wrapper(gym.make(args.env))
     else:
         env_fn = lambda: Serialize_Env(gym.make(args.env))
-    
+
     if args.agent.lower() == 'random':
         save_dir = os.path.join("Model_Weights", args.env) if args.gif else None
         if not os.path.isdir(save_dir):
@@ -94,7 +94,7 @@ def main():
         random_test(env_fn, render=args.render, record_dir=save_dir, timesteps=args.timesteps)
         return
 
-    save_dir = os.path.join("Model_Weights", args.env, args.agent.lower(), "vae")
+    save_dir = os.path.join("Model_Weights", args.env, args.agent.lower())
     config_path = os.path.join(save_dir, args.agent.lower() + "_config.json")
     logger_kwargs = {
         "output_dir": save_dir
@@ -105,13 +105,13 @@ def main():
 
     if args.agent.lower() == 'ddpg':
         from Algorithms.ddpg.ddpg import DDPG
-        
+
         model = DDPG(env_fn, save_dir, seed=args.seed, logger_kwargs=logger_kwargs, **model_kwargs)
         model.load_weights(load_buffer=False)
 
     elif args.agent.lower() == 'td3':
         from Algorithms.td3.td3 import TD3
-            
+
         model = TD3(env_fn, save_dir, seed=args.seed, logger_kwargs=logger_kwargs, **model_kwargs)
         model.load_weights(load_buffer=False)
 
