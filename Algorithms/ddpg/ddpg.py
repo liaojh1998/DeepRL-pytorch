@@ -384,7 +384,7 @@ class DDPG:
             img.append(self.env.render('rgb_array'))
 
         if timesteps is not None:
-            for i in range(timesteps):
+            for i in tqdm(range(timesteps)):
                 # Take deterministic action with 0 noise added
                 state, reward, done, _ = self.env.step(self.get_action(state, 0))
                 if record:
