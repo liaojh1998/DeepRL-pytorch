@@ -20,6 +20,6 @@
     "update_every": 50,
     "act_noise": 0.1,
     "max_ep_len": 200,
-    "save_freq": 10,
+    "save_freq": 1000,
     "tensorboard_logdir": "tf_logs/ddpg"
 }
